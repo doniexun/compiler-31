@@ -1,0 +1,9 @@
+*.d
+*.o
+*.cc
+
+cgen
+lexer
+mycoolc
+parser
+semant
