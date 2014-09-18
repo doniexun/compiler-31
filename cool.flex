@@ -43,13 +43,57 @@ extern YYSTYPE cool_yylval;
  *  Add Your own definitions here
  */
 
+#define LOGGING true
+
+#define QUOTE(name) #name
+#define LOG(log_string) if(LOGGING){printf("\t\t\t%s\n", QUOTE(log_string));}
+
 %}
+%x comment
 
 /*
  * Define names for regular expressions here.
  */
 
-DARROW          =>
+WHITE_SPACE		[\n\t\b\f ]
+
+OPEN_COMMENT		"(*"
+CLOSE_COMMENT		"*)"
+
+STRING 			\"(\\.|[^"])*\"
+CHARACTER		\'(\\.|[^'])\'
+
+OPEN_PAREN		"("
+CLOSE_PAREN		")"
+OPEN_BRACE		"{"
+CLOSE_BRACE		"}"
+OPEN_SBRACE		"["
+CLOSE_SBRACE		"]"
+
+COMMA			","
+
+DARROW			"=>"
+ASSIGNMENT		"<-"
+
+/* operators */
+PLUS 			"+"
+MINUS 			"-"
+DIV			"/"
+MUL			"*"
+LT			"<"
+GT			">"
+DOT			"."
+EQUAL			"="
+
+SEMI_COLON		";"
+COLON			":"
+
+KEYWORDS 		class|inherits|self|if|then|else|fi|let|end|while|loop|pool|new|SELF_TYPE|Int|String
+
+DIGIT			[0-9]
+INTEGER			{DIGIT}+
+
+ID			[a-zA-Z_][a-zA-Z0-9_]*
 
 %%
 
@@ -57,17 +101,59 @@ DARROW          =>
   *  Nested comments
   */
 
+{OPEN_COMMENT} BEGIN(comment);
+
+<comment>[^*\n]*        /* eat anything that's not a '*' */
+<comment>"*"+[^*)\n]*   /* eat up '*'s not followed by ')'s */
+<comment>\n             /* line number increment */
+<comment>{CLOSE_COMMENT} BEGIN(INITIAL);
+
+ /* strings */
+{STRING} ECHO; LOG(STRING);
+
+ /* characters */
+{CHARACTER} ECHO; LOG(CHARACTER);
+
+{INTEGER} ECHO; LOG(INTEGER);
+
+ /* terminals */
+{OPEN_PAREN} ECHO; LOG(OPEN_PAREN);
+{CLOSE_PAREN} ECHO; LOG(CLOSE_PAREN);
+{OPEN_BRACE} ECHO; LOG(OPEN_BRACE);
+{CLOSE_BRACE} ECHO; LOG(CLOSE_BRACE);
+{OPEN_SBRACE} ECHO; LOG(OPEN_SBRACE);
+{CLOSE_SBRACE} ECHO; LOG(CLOSE_SBRACE);
+{SEMI_COLON} ECHO; LOG(SEMI_COLON);
+{COLON} ECHO; LOG(COLON);
+{COMMA} ECHO; LOG(COMMA);
+
 
  /*
   *  The multiple-character operators.
   */
-{DARROW}		{ return (DARROW); }
+{DARROW}	{ 
+	ECHO; LOG(DARROW);
+	return (DARROW); 
+}
+
+{ASSIGNMENT} ECHO; LOG(ASSIGNMENT);
 
  /*
   * Keywords are case-insensitive except for the values true and false,
   * which must begin with a lower-case letter.
   */
 
+ /* 
+  * operators 
+  */
+{PLUS}|{MINUS}|{DIV}|{MUL}|{LT}|{GT}|{DOT}|{EQUAL} ECHO; LOG(OPERATOR);
+
+ /* 
+  * keywords 
+  */
+{KEYWORDS} ECHO; LOG(KEYWORD);
+
+{ID} ECHO; LOG(ID);
 
  /*
   *  String constants (C syntax)
@@ -75,6 +161,13 @@ DARROW          =>
   *  \n \t \b \f, the result is c.
   *
   */
-
+{WHITE_SPACE} /* ignore */
 
 %%
+
+/*
+cool_yylex  returns integer code 
+cool_yylval  data structure 
+cool_yylval.symbol  saving symbols 
+cool_yylval.boolean  saving semantic value 
+*/
